@@ -453,7 +453,10 @@ function renderPanel(job) {
         ${job.customer_email?`<div style="color:var(--fg2)">${esc(job.customer_email)}</div>`:''}
       </div>
       ${job.notes?`<div class="section-h">Notes</div><div style="font-size:13px;color:var(--fg2);line-height:1.6">${esc(job.notes)}</div>`:''}
-      ${job.due_date?`<div class="section-h">Target Date</div><div style="font-size:13px">${fmtDate(job.due_date)}</div>`:''}
+      <div class="section-h" style="margin-top:14px">Target Date</div>
+      <input type="date" id="ov-due-date" value="${job.due_date?String(job.due_date).slice(0,10):''}"
+        style="font-family:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface2);color:var(--fg);cursor:pointer"
+        onchange="api.patch('/api/jobs/${job.id}',{due_date:this.value||null}).then(()=>refreshPanel(${job.id}))">
     </div>
 
     <!-- TASKS -->
