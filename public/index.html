@@ -1056,11 +1056,7 @@ async function archiveJob(jobId) {
 
 // ── Ordering warning ──────────────────────────────────────────────────────
 function hasOrderingWarning(job) {
-  if (!job.due_date) return false;
-  if (['done','ready'].includes(job.stage)) return false;
-  const due = new Date(String(job.due_date).slice(0,10)+'T00:00:00');
-  const twoDaysOut = new Date(); twoDaysOut.setDate(twoDaysOut.getDate()+2);
-  if (due > twoDaysOut) return false;
+  if (['done','ready','quote','fab','galv'].includes(job.stage)) return false;
   const orderTasks = (job.tasks||[]).filter(t=>t.stage==='order');
   return orderTasks.some(t=>!t.done);
 }
@@ -1069,7 +1065,7 @@ function orderingWarning(job) {
   if (!hasOrderingWarning(job)) return '';
   const orderTasks = (job.tasks||[]).filter(t=>t.stage==='order');
   const unfinished = orderTasks.filter(t=>!t.done).length;
-  return `<div class="warn-banner">⚠ Due ${fmtDate(job.due_date)} — ${unfinished} purchased item${unfinished>1?'s':''} not yet ticked off</div>`;
+  return `<div class="warn-banner">📦 ${unfinished} purchased item${unfinished>1?'s':''} not yet ticked off</div>`;
 }
 
 // ── Extras ────────────────────────────────────────────────────────────────

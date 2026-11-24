@@ -63,9 +63,7 @@ router.get('/api/jobs', async (req, res) => {
     SELECT j.*,
       p.name AS assigned_name, p.color AS assigned_color, p.initials AS assigned_initials,
       (
-        j.due_date IS NOT NULL
-        AND j.stage NOT IN ('done','ready')
-        AND j.due_date <= CURRENT_DATE + INTERVAL '2 days'
+        j.stage NOT IN ('done','ready','quote','fab','galv')
         AND EXISTS (
           SELECT 1 FROM job_tasks t
           WHERE t.job_id = j.id AND t.stage = 'order' AND t.done = false
