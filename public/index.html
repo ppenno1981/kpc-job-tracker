@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KPC Job Tracker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+<style>
+:root {
+  --bg: #f0f2f5;
+  --surface: #ffffff;
+  --surface2: #f8f9fb;
+  --border: #e2e6ea;
+  --fg: #1a2332;
+  --fg2: #5a6778;
+  --fg3: #8c99a8;
+  --accent: #1d6fa4;
+  --accent-light: #e8f3fb;
+  --accent-dark: #155682;
+  --danger: #c0392b;
+  --warn: #e67e22;
+  --success: #27ae60;
+  --steel: #2c3e50;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.12);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f1621; --surface: #1a2332; --surface2: #1e2a3a;
+    --border: #2a3a4e; --fg: #e8edf2; --fg2: #9aaabb; --fg3: #5a6e82;
+    --accent: #3a9fd6; --accent-light: #1a3550; --accent-dark: #5ab8e8; --steel: #c5d0da;
+    color-scheme: dark;
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--fg);font-size:14px;line-height:1.5;min-height:100vh}
+
+/* Header */
+.header{position:sticky;top:0;z-index:100;background:var(--steel);display:flex;align-items:center;gap:12px;padding:0 20px;height:56px;color:#fff}
+.header-logo{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;color:#fff;display:flex;align-items:center;gap:8px}
+.header-sub{font-size:11px;opacity:.6;margin-top:1px}
+.header-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:.15s;font-family:inherit;text-decoration:none}
+.btn-primary{background:var(--accent);color:#fff}.btn-primary:hover{background:var(--accent-dark)}
+.btn-ghost{background:rgba(255,255,255,.12);color:#fff}.btn-ghost:hover{background:rgba(255,255,255,.2)}
+.btn-secondary{background:var(--surface2);color:var(--fg);border:1px solid var(--border)}.btn-secondary:hover{background:var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-success{background:var(--success);color:#fff}
+
+/* Stats */
+.stats-bar{display:flex;gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+.stat-cell{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 8px;background:var(--surface);font-size:11px;color:var(--fg2);font-weight:500;letter-spacing:.3px;text-transform:uppercase;min-width:90px}
+.stat-cell .num{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--fg);line-height:1.2}
+
+/* Layout */
+.main{display:flex;height:calc(100vh - 56px - 54px);overflow:hidden}
+
+/* Kanban */
+.kanban-wrap{flex:1;overflow-x:auto;overflow-y:hidden;padding:14px;display:flex;gap:10px}
+.lane{flex:0 0 220px;display:flex;flex-direction:column;max-height:100%;background:var(--surface2);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.lane-header{padding:9px 12px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border);font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--fg2);flex-shrink:0}
+.lane-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.lane-count{margin-left:auto;background:var(--border);color:var(--fg3);font-size:11px;padding:1px 6px;border-radius:10px;font-weight:700}
+.lane-cards{flex:1;overflow-y:auto;padding:9px;display:flex;flex-direction:column;gap:7px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:11px 12px;cursor:pointer;box-shadow:var(--shadow);transition:box-shadow .15s,transform .1s;position:relative;padding-left:15px}
+.card-stripe{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px}
+.card:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.card-ref{font-size:10px;color:var(--fg3);font-weight:600;letter-spacing:.3px}
+.card-name{font-weight:600;font-size:13px;margin:1px 0;color:var(--fg)}
+.card-trailer{font-size:11px;color:var(--fg2);margin-bottom:5px}
+.card-meta{display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.chip{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px}
+.chip-task{background:var(--border);color:var(--fg2)}
+.card-date{font-size:10px;color:var(--fg3);margin-top:4px}
+
+/* Panel */
+.panel{width:380px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
+.panel[hidden]{display:none}
+.panel-header{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.panel-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;line-height:1.3}
+.panel-body{flex:1;overflow-y:auto;padding:18px}
+.panel-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end}
+.close-btn{background:none;border:none;cursor:pointer;color:var(--fg3);font-size:20px;padding:2px 6px;border-radius:4px;line-height:1;flex-shrink:0}
+.close-btn:hover{background:var(--border);color:var(--fg)}
+
+/* Tabs */
+.tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab-btn{padding:7px 13px;font-size:12px;font-weight:600;color:var(--fg3);background:none;border:none;border-bottom:2px solid transparent;cursor:pointer;font-family:inherit;transition:.15s;margin-bottom:-1px}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab-pane[hidden]{display:none}
+
+/* Forms */
+.form-group{margin-bottom:12px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{display:block;font-size:11px;font-weight:600;color:var(--fg2);margin-bottom:4px;letter-spacing:.3px;text-transform:uppercase}
+input,select,textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;color:var(--fg);background:var(--bg);transition:border-color .15s;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:60px}
+.section-h{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--fg3);margin:18px 0 10px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.section-h:first-child{margin-top:0}
+
+/* Stage buttons */
+.stage-row{display:flex;gap:5px;flex-wrap:wrap}
+.stage-btn{padding:5px 10px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.3px;border:2px solid transparent;cursor:pointer;transition:.15s;font-family:inherit}
+.stage-btn.active{border-color:currentColor}
+
+/* Task list */
+.task-list{display:flex;flex-direction:column;gap:4px}
+.task-item{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);font-size:12px}
+.task-item input[type=checkbox]{width:15px;height:15px;accent-color:var(--accent);cursor:pointer;flex-shrink:0}
+.task-label{flex:1;font-weight:500;cursor:pointer}
+.task-label.done{text-decoration:line-through;color:var(--fg3)}
+.task-assign-sel{width:auto!important;padding:2px 4px!important;font-size:11px!important;border-radius:4px!important}
+
+/* Money box */
+.money-box{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;margin-bottom:12px}
+.money-row{display:flex;justify-content:space-between;align-items:center;padding:3px 0;font-size:13px}
+.money-row .lbl{color:var(--fg2)}
+.money-row .val{font-weight:700;font-variant-numeric:tabular-nums}
+.money-row.total{border-top:1px solid var(--border);margin-top:6px;padding-top:8px;font-size:14px}
+.text-success{color:var(--success)}.text-warn{color:var(--warn)}.text-danger{color:var(--danger)}
+
+/* Activity */
+.activity{display:flex;flex-direction:column;gap:6px}
+.activity-entry{font-size:12px;color:var(--fg2);padding:7px 10px;background:var(--surface2);border-radius:6px;border-left:2px solid var(--border)}
+.activity-time{font-size:10px;color:var(--fg3);display:block;margin-top:2px}
+.note-add{display:flex;gap:8px;margin-top:10px}
+.note-add input{flex:1}
+
+/* Invoice buttons */
+.invoice-row{display:flex;gap:8px;margin-top:4px}
+
+/* People */
+.person-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.person-header{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--surface2);border-bottom:1px solid var(--border)}
+.person-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#fff;flex-shrink:0}
+.person-name{font-weight:700;font-size:14px}
+.person-role{font-size:11px;color:var(--fg3)}
+.person-jobs{padding:10px 14px;display:flex;flex-direction:column;gap:5px}
+.person-job-row{display:flex;align-items:center;gap:8px;font-size:12px;padding:5px 8px;border-radius:6px;background:var(--surface2);cursor:pointer}
+.pjr-ref{color:var(--fg3);font-weight:600;font-size:11px;min-width:50px}
+.pjr-name{flex:1;font-weight:500}
+.pjr-stage{font-size:10px;padding:1px 6px;border-radius:4px;background:var(--border);color:var(--fg2)}
+
+/* Modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
+.modal-overlay[hidden]{display:none}
+.modal{background:var(--surface);border-radius:12px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-header{padding:20px 24px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:18px}
+.modal-body{flex:1;overflow-y:auto;padding:24px}
+.modal-footer{padding:14px 24px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--steel);color:#fff;padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+
+/* Loader */
+.loader{display:flex;align-items:center;justify-content:center;padding:40px;color:var(--fg3);font-size:13px}
+
+/* Empty */
+.empty{text-align:center;padding:20px 12px;color:var(--fg3);font-size:12px}
+
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+@media(max-width:700px){
+  .panel{width:100%;position:fixed;inset:0;z-index:150;border-left:none}
+  .stats-bar{overflow-x:auto}
+}
+</style>
+</head>
+<body>
+
+<!-- New Job Modal -->
+<div class="modal-overlay" id="newJobModal" hidden>
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Job</span>
+      <button class="close-btn" onclick="closeNewJob()">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="section-h">Customer</div>
+      <div class="form-row">
+        <div class="form-group"><label>Customer Name *</label><input id="n-cust" placeholder="e.g. John Smith" required></div>
+        <div class="form-group"><label>Phone</label><input id="n-phone" type="tel" placeholder="07700 000000"></div>
+      </div>
+      <div class="form-group"><label>Email</label><input id="n-email" type="email" placeholder="customer@email.com"></div>
+
+      <div class="section-h">Trailer</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Trailer Type</label>
+          <select id="n-type">
+            <option value="">Select…</option>
+            <option>Flatbed Trailer</option>
+            <option>Box Trailer</option>
+            <option>Plant Trailer</option>
+            <option>Car Transporter</option>
+            <option>Horse Box</option>
+            <option>Tipper Trailer</option>
+            <option>Livestock Trailer</option>
+            <option>Custom Build</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Size / Spec</label><input id="n-spec" placeholder="e.g. 10x6 twin axle"></div>
+      </div>
+      <div class="form-group"><label>Job Notes / Specification</label><textarea id="n-notes" placeholder="Special requirements, finish, options…"></textarea></div>
+
+      <div class="section-h">Financials</div>
+      <div class="form-row">
+        <div class="form-group"><label>Total Price (£)</label><input id="n-price" type="number" min="0" step="1" placeholder="0"></div>
+        <div class="form-group"><label>Deposit Taken (£)</label><input id="n-deposit" type="number" min="0" step="1" placeholder="0"></div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500">
+          <input type="checkbox" id="n-deposited" style="width:15px;height:15px;accent-color:var(--accent)"> Deposit has been received
+        </label>
+      </div>
+
+      <div class="section-h">Scheduling</div>
+      <div class="form-row">
+        <div class="form-group"><label>Target Completion</label><input id="n-due" type="date"></div>
+        <div class="form-group"><label>Assigned To</label><select id="n-assign"><option value="">Unassigned</option></select></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeNewJob()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveNewJob()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create Job
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-logo">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="1" y="3" width="22" height="13" rx="2"/><path d="M5 16v2m14-2v2M3 13h18"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>
+    </svg>
+    <div><div>KPC Engineering</div><div class="header-sub">Job Tracker</div></div>
+  </div>
+  <div class="header-actions">
+    <button class="btn btn-ghost btn-sm" id="teamBtn" onclick="toggleTeam()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Team
+    </button>
+    <button class="btn btn-primary btn-sm" onclick="openNewJob()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      New Job
+    </button>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-bar" id="statsBar">
+  <div class="stat-cell"><span class="num">—</span>Active Jobs</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="kanban-wrap" id="kanban"><div class="loader">Loading jobs…</div></div>
+
+  <!-- Job detail panel -->
+  <div class="panel" id="detailPanel" hidden>
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="panelTitle"></div>
+        <div style="font-size:11px;color:var(--fg3);margin-top:1px" id="panelSub"></div>
+      </div>
+      <button class="close-btn" onclick="closePanel()">&times;</button>
+    </div>
+    <div class="panel-body" id="panelBody"></div>
+    <div class="panel-footer" id="panelFooter"></div>
+  </div>
+
+  <!-- Team panel -->
+  <div class="panel" id="teamPanel" hidden>
+    <div class="panel-header">
+      <div class="panel-title">Team</div>
+      <button class="close-btn" onclick="closeTeam()">&times;</button>
+    </div>
+    <div class="panel-body" id="teamBody"></div>
+  </div>
+</div>
+
+<script>
+const STAGES = [
+  {id:'quote', label:'Quoted',      color:'#7f8c8d'},
+  {id:'fab',   label:'Fabrication', color:'#e67e22'},
+  {id:'galv',  label:'Galvanising', color:'#8e44ad'},
+  {id:'order', label:'Ordering',    color:'#2980b9'},
+  {id:'fit',   label:'Fitting',     color:'#16a085'},
+  {id:'ready', label:'Ready',       color:'#27ae60'},
+  {id:'done',  label:'Delivered',   color:'#95a5a6'},
+];
+
+const TASK_STAGES = {
+  fab:['Steel prep','Welding','Frame assembly','Quality check'],
+  galv:['Send to galvanisers','Collect from galvanisers'],
+  order:['Axles','Wheels','Coupling','Aluboard / decking','Chassis plate & pack','Lights & wiring','Electrics'],
+  fit:['Fit axles & wheels','Coupling fitted','Decking / floor','Lights wired','Final inspection','Brake test'],
+  ready:['Balance invoice sent','Invoice paid','Delivery booked'],
+};
+
+let jobs = [];
+let people = [];
+let activeJobId = null;
+let showTeam = false;
+
+// ── API helpers ───────────────────────────────────────────────────────────
+const api = {
+  get: url => fetch(url).then(r => r.json()),
+  post: (url, body) => fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  patch: (url, body) => fetch(url,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(r=>r.json()),
+  delete: url => fetch(url,{method:'DELETE'}).then(r=>r.json()),
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────
+async function init() {
+  [jobs, people] = await Promise.all([api.get('/api/jobs'), api.get('/api/people')]);
+  populateAssignSelect(document.getElementById('n-assign'));
+  render();
+}
+
+function populateAssignSelect(sel) {
+  sel.innerHTML = '<option value="">Unassigned</option>' +
+    people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+// ── Render ────────────────────────────────────────────────────────────────
+function render() {
+  renderStats();
+  renderKanban();
+}
+
+function renderStats() {
+  const active = jobs.filter(j => j.stage !== 'done');
+  const totalVal = active.reduce((s,j) => s + parseFloat(j.price||0), 0);
+  const deposits = active.reduce((s,j) => s + (j.deposit_paid ? parseFloat(j.deposit_amount||0) : 0), 0);
+  const outstanding = active.reduce((s,j) => {
+    if (!j.balance_paid) return s + (parseFloat(j.price||0) - parseFloat(j.deposit_amount||0));
+    return s;
+  }, 0);
+  const overdue = active.filter(j => j.due_date && new Date(j.due_date) < new Date()).length;
+  document.getElementById('statsBar').innerHTML = `
+    <div class="stat-cell"><span class="num">${active.length}</span>Active Jobs</div>
+    <div class="stat-cell"><span class="num" style="font-size:16px">£${totalVal.toLocaleString()}</span>Total Value</div>
+    <div class="stat-cell"><span class="num" style="font-size:16px;color:var(--success)">£${deposits.toLocaleString()}</span>Deposits In</div>
+    <div class="stat-cell"><span class="num" style="font-size:16px;color:var(--warn)">£${outstanding.toLocaleString()}</span>Outstanding</div>
+    <div class="stat-cell"><span class="num" style="color:${overdue>0?'var(--danger)':'var(--fg)'}">${overdue}</span>Overdue</div>
+  `;
+}
+
+function renderKanban() {
+  const wrap = document.getElementById('kanban');
+  wrap.innerHTML = '';
+  STAGES.forEach(stage => {
+    const stageJobs = jobs.filter(j => j.stage === stage.id);
+    const lane = document.createElement('div');
+    lane.className = 'lane';
+    lane.innerHTML = `
+      <div class="lane-header">
+        <span class="lane-dot" style="background:${stage.color}"></span>
+        ${stage.label}
+        <span class="lane-count">${stageJobs.length}</span>
+      </div>
+      <div class="lane-cards" id="lane-${stage.id}"></div>`;
+    wrap.appendChild(lane);
+    const cards = lane.querySelector('.lane-cards');
+    if (!stageJobs.length) {
+      cards.innerHTML = '<div class="empty">No jobs</div>';
+      return;
+    }
+    stageJobs.forEach(j => cards.appendChild(makeCard(j, stage)));
+  });
+}
+
+function makeCard(job, stage) {
+  const card = document.createElement('div');
+  card.className = 'card';
+  const isOverdue = job.due_date && new Date(job.due_date) < new Date() && job.stage !== 'done';
+  const person = people.find(p => p.id == job.assigned_to);
+  card.innerHTML = `
+    <div class="card-stripe" style="background:${stage.color}"></div>
+    <div class="card-ref">JOB #${String(job.id).padStart(3,'0')}</div>
+    <div class="card-name">${esc(job.customer_name)}</div>
+    <div class="card-trailer">${esc(job.trailer_type||'')}${job.spec?' · '+esc(job.spec):''}</div>
+    <div class="card-meta">
+      ${person ? `<span class="chip" style="background:${person.color}22;color:${person.color}">${person.initials}</span>` : ''}
+      ${job.deposit_paid ? `<span class="chip" style="background:#e8f8ef;color:var(--success)">£${parseFloat(job.deposit_amount||0).toLocaleString()} dep</span>` : ''}
+    </div>
+    ${job.due_date ? `<div class="card-date" style="color:${isOverdue?'var(--danger)':'var(--fg3)'}">
+      ${isOverdue?'⚠ ':''}Due ${fmtDate(job.due_date)}</div>` : ''}`;
+  card.onclick = () => openPanel(job.id);
+  return card;
+}
+
+// ── Panel ─────────────────────────────────────────────────────────────────
+async function openPanel(id) {
+  activeJobId = id;
+  closeTeam();
+  document.getElementById('detailPanel').hidden = false;
+  document.getElementById('panelBody').innerHTML = '<div class="loader">Loading…</div>';
+  const job = await api.get(`/api/jobs/${id}`);
+  renderPanel(job);
+}
+
+function closePanel() {
+  document.getElementById('detailPanel').hidden = true;
+  activeJobId = null;
+}
+
+function renderPanel(job) {
+  const stage = STAGES.find(s => s.id === job.stage);
+  const person = people.find(p => p.id == job.assigned_to);
+  const price = parseFloat(job.price||0);
+  const dep = parseFloat(job.deposit_amount||0);
+  const balance = price - dep;
+
+  document.getElementById('panelTitle').textContent = `JOB #${String(job.id).padStart(3,'0')} · ${job.customer_name}`;
+  document.getElementById('panelSub').textContent = `${job.trailer_type||''}${job.spec?' · '+job.spec:''}`;
+
+  const body = document.getElementById('panelBody');
+  body.innerHTML = `
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(this,'t-overview')">Overview</button>
+      <button class="tab-btn" onclick="switchTab(this,'t-tasks')">Tasks</button>
+      <button class="tab-btn" onclick="switchTab(this,'t-finance')">Finance</button>
+      <button class="tab-btn" onclick="switchTab(this,'t-activity')">Activity</button>
+    </div>
+
+    <!-- OVERVIEW -->
+    <div id="t-overview" class="tab-pane">
+      <div class="section-h">Stage</div>
+      <div class="stage-row" id="sr-stage"></div>
+      <div class="section-h" style="margin-top:14px">Assigned To</div>
+      <div class="stage-row" id="sr-assign"></div>
+      <div class="section-h">Customer</div>
+      <div style="font-size:13px;line-height:2">
+        <div><strong>${esc(job.customer_name)}</strong></div>
+        ${job.customer_phone?`<div style="color:var(--fg2)">${esc(job.customer_phone)}</div>`:''}
+        ${job.customer_email?`<div style="color:var(--fg2)">${esc(job.customer_email)}</div>`:''}
+      </div>
+      ${job.notes?`<div class="section-h">Notes</div><div style="font-size:13px;color:var(--fg2);line-height:1.6">${esc(job.notes)}</div>`:''}
+      ${job.due_date?`<div class="section-h">Target Date</div><div style="font-size:13px">${fmtDate(job.due_date)}</div>`:''}
+    </div>
+
+    <!-- TASKS -->
+    <div id="t-tasks" class="tab-pane" hidden>${renderTasksHTML(job)}</div>
+
+    <!-- FINANCE -->
+    <div id="t-finance" class="tab-pane" hidden>
+      <div class="money-box">
+        <div class="money-row"><span class="lbl">Total Price</span><span class="val">£${price.toFixed(2)}</span></div>
+        <div class="money-row"><span class="lbl">Deposit</span><span class="val ${job.deposit_paid?'text-success':'text-warn'}">${job.deposit_paid?'£'+dep.toFixed(2):'Not received'}</span></div>
+        <div class="money-row total"><span class="lbl">Balance Due</span><span class="val ${job.balance_paid?'text-success':'text-warn'}">£${balance.toFixed(2)}</span></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Price (£)</label>
+          <input type="number" value="${price||''}" onchange="patchJob(${job.id},{price:parseFloat(this.value)||0})"></div>
+        <div class="form-group"><label>Deposit (£)</label>
+          <input type="number" value="${dep||''}" onchange="patchJob(${job.id},{deposit_amount:parseFloat(this.value)||0})"></div>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)" ${job.deposit_paid?'checked':''} onchange="patchJob(${job.id},{deposit_paid:this.checked})">
+          Deposit received
+        </label>
+      </div>
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;text-transform:none;letter-spacing:0;font-size:13px;font-weight:500">
+          <input type="checkbox" style="width:15px;height:15px;accent-color:var(--accent)" ${job.balance_paid?'checked':''} onchange="patchJob(${job.id},{balance_paid:this.checked})">
+          Balance paid in full
+        </label>
+      </div>
+      <div class="section-h">Invoices</div>
+      <div class="invoice-row">
+        <a class="btn btn-secondary btn-sm" href="/api/jobs/${job.id}/invoice/deposit" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Deposit Invoice
+        </a>
+        <a class="btn btn-primary btn-sm" href="/api/jobs/${job.id}/invoice/balance" target="_blank">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Balance Invoice
+        </a>
+      </div>
+    </div>
+
+    <!-- ACTIVITY -->
+    <div id="t-activity" class="tab-pane" hidden>
+      <div class="activity">
+        ${(job.activity||[]).map(a=>`
+          <div class="activity-entry">${esc(a.text)}
+            <span class="activity-time">${fmtDateTime(a.created_at)}</span>
+          </div>`).join('')}
+      </div>
+      <div class="note-add">
+        <input id="noteInput" placeholder="Add a note…" onkeydown="if(event.key==='Enter')addNote(${job.id})">
+        <button class="btn btn-primary btn-sm" onclick="addNote(${job.id})">Add</button>
+      </div>
+    </div>`;
+
+  // Stage buttons
+  const sr = body.querySelector('#sr-stage');
+  STAGES.forEach(s => {
+    const b = document.createElement('button');
+    b.className = 'stage-btn' + (s.id===job.stage?' active':'');
+    b.textContent = s.label;
+    b.style.cssText = `background:${s.color}22;color:${s.color}`;
+    b.onclick = () => moveStage(job.id, s.id);
+    sr.appendChild(b);
+  });
+
+  // Assign buttons
+  const ar = body.querySelector('#sr-assign');
+  const ub = document.createElement('button');
+  ub.className='stage-btn'+((!job.assigned_to)?' active':'');
+  ub.textContent='Unassigned';
+  ub.style.cssText='background:var(--border);color:var(--fg3)';
+  ub.onclick=()=>patchJob(job.id,{assigned_to:''}).then(()=>refreshPanel(job.id));
+  ar.appendChild(ub);
+  people.forEach(p => {
+    const b=document.createElement('button');
+    b.className='stage-btn'+(job.assigned_to==p.id?' active':'');
+    b.textContent=p.name;
+    b.style.cssText=`background:${p.color}22;color:${p.color}`;
+    b.onclick=()=>patchJob(job.id,{assigned_to:p.id}).then(()=>refreshPanel(job.id));
+    ar.appendChild(b);
+  });
+
+  // Task checkboxes
+  body.querySelectorAll('input[data-task]').forEach(cb => {
+    cb.onchange = async () => {
+      await api.patch(`/api/tasks/${cb.dataset.task}`, {done:cb.checked});
+      const lbl = document.getElementById('lbl-'+cb.dataset.task);
+      if(lbl) lbl.className = cb.checked ? 'task-label done' : 'task-label';
+      await refreshJobs();
+    };
+  });
+  body.querySelectorAll('select[data-task]').forEach(sel => {
+    sel.onchange = async () => {
+      await api.patch(`/api/tasks/${sel.dataset.task}`, {assigned_to:sel.value||null});
+    };
+  });
+
+  document.getElementById('panelFooter').innerHTML = `
+    <button class="btn btn-danger btn-sm" onclick="deleteJob(${job.id})">Delete Job</button>`;
+}
+
+function renderTasksHTML(job) {
+  const tasksByStage = {};
+  (job.tasks||[]).forEach(t => {
+    if (!tasksByStage[t.stage]) tasksByStage[t.stage] = [];
+    tasksByStage[t.stage].push(t);
+  });
+  let html = '';
+  Object.entries(TASK_STAGES).forEach(([stageId, _]) => {
+    const tasks = tasksByStage[stageId] || [];
+    if (!tasks.length) return;
+    const stage = STAGES.find(s=>s.id===stageId);
+    const done = tasks.filter(t=>t.done).length;
+    html += `<div class="section-h" style="color:${stage?.color}">${stage?.label} (${done}/${tasks.length})</div>
+    <div class="task-list">`;
+    tasks.forEach(t => {
+      html += `<div class="task-item">
+        <input type="checkbox" data-task="${t.id}" ${t.done?'checked':''}
+          id="cb-${t.id}">
+        <label id="lbl-${t.id}" class="task-label${t.done?' done':''}" for="cb-${t.id}">${esc(t.label)}</label>
+        <select class="task-assign-sel" data-task="${t.id}" style="width:auto;padding:2px 4px;font-size:11px;border-radius:4px;background:var(--bg);border:1px solid var(--border);color:var(--fg)">
+          <option value="">—</option>
+          ${people.map(p=>`<option value="${p.id}" ${t.assigned_to==p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+      </div>`;
+    });
+    html += '</div>';
+  });
+  return html || '<div class="empty">No tasks</div>';
+}
+
+function switchTab(btn, tabId) {
+  const scope = btn.closest('.panel-body,.modal-body');
+  scope.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  scope.querySelectorAll('.tab-pane').forEach(p=>p.hidden=true);
+  document.getElementById(tabId).hidden=false;
+}
+
+// ── Team panel ─────────────────────────────────────────────────────────────
+function toggleTeam() {
+  showTeam = !showTeam;
+  document.getElementById('teamPanel').hidden = !showTeam;
+  if(showTeam) { closePanel(); renderTeam(); }
+}
+function closeTeam() { showTeam=false; document.getElementById('teamPanel').hidden=true; }
+
+function renderTeam() {
+  const body = document.getElementById('teamBody');
+  let html = '';
+  people.forEach(p => {
+    const myJobs = jobs.filter(j=>j.stage!=='done'&&j.assigned_to==p.id);
+    html += `<div class="person-card">
+      <div class="person-header">
+        <div class="person-avatar" style="background:${p.color}">${p.initials}</div>
+        <div><div class="person-name">${p.name}</div><div class="person-role">${p.role} · ${myJobs.length} job${myJobs.length!==1?'s':''}</div></div>
+      </div>
+      <div class="person-jobs">
+        ${myJobs.length ? myJobs.map(j=>{
+          const s=STAGES.find(x=>x.id===j.stage);
+          return `<div class="person-job-row" onclick="openPanel(${j.id})">
+            <span class="pjr-ref">#${String(j.id).padStart(3,'0')}</span>
+            <span class="pjr-name">${esc(j.customer_name)}</span>
+            <span class="pjr-stage" style="color:${s?.color}">${s?.label||''}</span>
+          </div>`;
+        }).join('') : '<div class="empty" style="padding:10px">No active jobs</div>'}
+      </div>
+    </div>`;
+  });
+  body.innerHTML = html;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────
+function openNewJob() {
+  document.getElementById('newJobModal').hidden = false;
+}
+function closeNewJob() {
+  document.getElementById('newJobModal').hidden = true;
+}
+
+async function saveNewJob() {
+  const v = id => document.getElementById(id).value.trim();
+  const customer_name = v('n-cust');
+  if (!customer_name) { toast('Please enter a customer name'); return; }
+  const body = {
+    customer_name,
+    customer_phone: v('n-phone'),
+    customer_email: v('n-email'),
+    trailer_type: v('n-type'),
+    spec: v('n-spec'),
+    notes: v('n-notes'),
+    price: parseFloat(document.getElementById('n-price').value)||0,
+    deposit_amount: parseFloat(document.getElementById('n-deposit').value)||0,
+    deposit_paid: document.getElementById('n-deposited').checked,
+    assigned_to: v('n-assign')||null,
+    due_date: v('n-due')||null,
+  };
+  const { id } = await api.post('/api/jobs', body);
+  closeNewJob();
+  ['n-cust','n-phone','n-email','n-type','n-spec','n-notes','n-price','n-deposit','n-due'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('n-deposited').checked=false;
+  document.getElementById('n-assign').value='';
+  await refreshJobs();
+  toast('Job created');
+  openPanel(id);
+}
+
+async function moveStage(jobId, stage) {
+  await patchJob(jobId, {stage});
+  await refreshJobs();
+  refreshPanel(jobId);
+}
+
+async function patchJob(jobId, data) {
+  await api.patch(`/api/jobs/${jobId}`, data);
+  await refreshJobs();
+}
+
+async function addNote(jobId) {
+  const inp = document.getElementById('noteInput');
+  const text = inp.value.trim();
+  if (!text) return;
+  await api.post(`/api/jobs/${jobId}/notes`, {text});
+  inp.value = '';
+  refreshPanel(jobId);
+}
+
+async function deleteJob(jobId) {
+  if (!confirm(`Delete job #${String(jobId).padStart(3,'0')}? This cannot be undone.`)) return;
+  await api.delete(`/api/jobs/${jobId}`);
+  closePanel();
+  await refreshJobs();
+  toast('Job deleted');
+}
+
+async function refreshJobs() {
+  jobs = await api.get('/api/jobs');
+  render();
+  if(showTeam) renderTeam();
+}
+
+async function refreshPanel(jobId) {
+  if (activeJobId !== jobId) return;
+  const job = await api.get(`/api/jobs/${jobId}`);
+  renderPanel(job);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────
+function esc(s){if(!s)return'';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function fmtDate(d){if(!d)return'';return new Date(d+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}
+function fmtDateTime(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+</body>
+</html>
