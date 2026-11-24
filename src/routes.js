@@ -14,6 +14,14 @@ const DEFAULT_TASKS = {
 // ── Health ────────────────────────────────────────────────────────────────
 router.get('/health', (req, res) => res.json({ ok: true }));
 
+// ── One-time cleanup (remove after use) ───────────────────────────────────
+router.post('/admin/cleanup-people', async (req, res) => {
+  await pool.query('DELETE FROM people WHERE id NOT IN (SELECT MIN(id) FROM people GROUP BY name)');
+  try { await pool.query('ALTER TABLE people ADD CONSTRAINT people_name_unique UNIQUE (name)'); } catch(e) {}
+  const { rows } = await pool.query('SELECT * FROM people ORDER BY id');
+  res.json({ ok: true, people: rows });
+});
+
 // ── People ────────────────────────────────────────────────────────────────
 router.get('/api/people', async (req, res) => {
   const { rows } = await pool.query('SELECT * FROM people ORDER BY id');
