@@ -218,14 +218,22 @@ textarea{resize:vertical;min-height:60px}
           <label>Trailer Type</label>
           <select id="n-type">
             <option value="">Select…</option>
-            <option>Flatbed Trailer</option>
-            <option>Box Trailer</option>
-            <option>Plant Trailer</option>
-            <option>Car Transporter</option>
-            <option>Horse Box</option>
-            <option>Tipper Trailer</option>
-            <option>Livestock Trailer</option>
-            <option>Custom Build</option>
+            <optgroup label="── KPC Build Sheets ──">
+              <option>Whiterock Road Trailer</option>
+              <option>WhiteWater Boat Trailer</option>
+              <option>Boxxa Box Trailer</option>
+              <option>ATV Trailer</option>
+              <option>IBC Trailer</option>
+            </optgroup>
+            <optgroup label="── Other ──">
+              <option>Flatbed Trailer</option>
+              <option>Plant Trailer</option>
+              <option>Car Transporter</option>
+              <option>Horse Box</option>
+              <option>Tipper Trailer</option>
+              <option>Livestock Trailer</option>
+              <option>Custom Build</option>
+            </optgroup>
           </select>
         </div>
         <div class="form-group"><label>Size / Spec</label><input id="n-spec" placeholder="e.g. 10x6 twin axle"></div>
@@ -442,6 +450,36 @@ function renderStats() {
 function renderKanban() {
   const wrap = document.getElementById('kanban');
   wrap.innerHTML = '';
+
+  if (showArchived) {
+    // Simple list view for archived jobs
+    const list = document.createElement('div');
+    list.style.cssText = 'flex:1;overflow-y:auto;padding:14px;max-width:700px';
+    if (!jobs.length) {
+      list.innerHTML = '<div class="empty" style="padding:40px">No archived jobs</div>';
+    } else {
+      jobs.forEach(j => {
+        const stage = STAGES.find(s => s.id === j.stage);
+        const person = people.find(p => p.id == j.assigned_to);
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:6px;cursor:pointer;transition:box-shadow .15s';
+        row.onmouseenter = ()=>row.style.boxShadow='0 2px 8px rgba(0,0,0,.12)';
+        row.onmouseleave = ()=>row.style.boxShadow='';
+        row.innerHTML = `
+          <span style="font-size:11px;color:var(--fg3);font-weight:600;min-width:52px">JOB #${String(j.id).padStart(3,'0')}</span>
+          <span style="font-weight:600;flex:1">${esc(j.customer_name)}</span>
+          <span style="font-size:12px;color:var(--fg2)">${esc(j.trailer_type||'')}${j.spec?' · '+esc(j.spec):''}</span>
+          <span style="font-size:11px;padding:2px 8px;border-radius:10px;background:${stage?.color}22;color:${stage?.color}">${stage?.label||''}</span>
+          ${person?`<span style="font-size:11px;font-weight:600;color:${person.color}">${person.initials}</span>`:''}
+        `;
+        row.onclick = () => openPanel(j.id);
+        list.appendChild(row);
+      });
+    }
+    wrap.appendChild(list);
+    return;
+  }
+
   STAGES.forEach(stage => {
     const stageJobs = jobs.filter(j => j.stage === stage.id);
     const lane = document.createElement('div');

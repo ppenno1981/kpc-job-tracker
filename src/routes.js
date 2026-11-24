@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('./db');
 const { generateInvoice } = require('./invoice');
 
+// Generic default tasks (used if no trailer-specific sheet found)
 const DEFAULT_TASKS = {
   fab:   [['Steel prep',0],['Welding',1],['Frame assembly',2],['Quality check',3]],
   galv:  [['Send to galvanisers',0],['Collect from galvanisers',1]],
@@ -10,6 +11,41 @@ const DEFAULT_TASKS = {
   fit:   [['Fit axles & wheels',0],['Coupling fitted',1],['Decking / floor',2],['Lights wired',3],['Final inspection',4],['Brake test',5]],
   ready: [['Balance invoice sent',0],['Invoice paid',1],['Delivery booked',2]],
 };
+
+// Trailer-type-specific build sheets (from KPC build sheet documents)
+const BUILD_SHEETS = {
+  'Whiterock Road Trailer': {
+    fab:   [['Chassis',0],['Roof',1],['Sides',2],['Ramp',3],['Hinges',4],['Mesh Sides',5]],
+    order: [['Axles',0],['Wheels',1],['Coupling',2],['J Wheel',3],['Flooring',4]],
+  },
+  'WhiteWater Boat Trailer': {
+    fab:   [['Side Frames',0],['Crossmembers',1],['Drawbar',2],['Crossmember',3],['Roller Crossmember',4],['Roller Carriers',5],['Swing Brackets',6],['Winch Post',7]],
+    order: [['Axle',0],['Wheels',1],['Coupling',2],['Winch',3],['Rollers',4],['Mudguards',5],['Lighting Board',6]],
+  },
+  'Boxxa Box Trailer': {
+    fab:   [['Chassis',0],['Roof',1],['Corners',2],['Internal Frame',3],['Rear Surround',4],['Hatch',5],['Hatch Frame',6],['Rear Doors',7],['Rear Ramp',8],['Side Door',9],['Side Door Frame',10]],
+    order: [['Axle',0],['Wheels',1],['Coupling',2],['Panels',3],['Lights',4],['Mudguards',5],['J Wheel',6],['Locks',7],['Hinges',8],['Flooring',9]],
+  },
+  'ATV Trailer': {
+    fab:   [['Chassis',0],['Roof',1],['Sides',2],['Ramp',3],['Hinges',4],['Mesh Sides',5],['Walking Axle',6]],
+    order: [['Stub Axles',0],['Wheels',1],['Coupling',2],['J Wheel',3],['Flooring',4]],
+  },
+  'IBC Trailer': {
+    fab:   [],
+    order: [['Stub Axles',0],['Wheels',1],['Coupling',2],['Drinker',3],['Wheel Bolts',4],['Ratchet Strap',5],['Hose',6],['Connectors',7],['Stand',8]],
+  },
+};
+
+function getTasksForType(trailerType) {
+  const sheet = BUILD_SHEETS[trailerType];
+  return {
+    fab:   (sheet?.fab   ?? DEFAULT_TASKS.fab),
+    galv:  DEFAULT_TASKS.galv,
+    order: (sheet?.order ?? DEFAULT_TASKS.order),
+    fit:   DEFAULT_TASKS.fit,
+    ready: DEFAULT_TASKS.ready,
+  };
+}
 
 // ── Health ────────────────────────────────────────────────────────────────
 router.get('/health', (req, res) => res.json({ ok: true }));
@@ -69,8 +105,9 @@ router.post('/api/jobs', async (req, res) => {
 
   const jobId = rows[0].id;
 
-  // Insert default tasks
-  for (const [stage, tasks] of Object.entries(DEFAULT_TASKS)) {
+  // Insert trailer-type-specific (or generic) tasks
+  const tasksToUse = getTasksForType(trailer_type);
+  for (const [stage, tasks] of Object.entries(tasksToUse)) {
     for (const [label, order] of tasks) {
       await pool.query(
         'INSERT INTO job_tasks (job_id, stage, label, sort_order) VALUES ($1,$2,$3,$4)',
