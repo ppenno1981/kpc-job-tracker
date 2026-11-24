@@ -8,6 +8,9 @@ CREATE TABLE IF NOT EXISTS people (
   initials TEXT
 );
 
+-- Remove duplicate people before adding unique constraint
+DELETE FROM people WHERE id NOT IN (SELECT MIN(id) FROM people GROUP BY name);
+
 -- Add unique constraint idempotently (safe if already exists)
 DO $$ BEGIN
   IF NOT EXISTS (
