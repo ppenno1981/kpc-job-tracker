@@ -2,7 +2,7 @@
 
 CREATE TABLE IF NOT EXISTS people (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
+  name TEXT NOT NULL UNIQUE,
   role TEXT,
   color TEXT DEFAULT '#1d6fa4',
   initials TEXT
@@ -12,7 +12,7 @@ INSERT INTO people (name, role, color, initials) VALUES
   ('Mark',  'Fabricator', '#1d6fa4', 'MK'),
   ('Steve', 'Welder',     '#8e44ad', 'SW'),
   ('Dave',  'Fitter',     '#16a085', 'DV')
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS jobs (
   id SERIAL PRIMARY KEY,
