@@ -22,11 +22,13 @@ router.get('/api/people', async (req, res) => {
 
 // ── Jobs list ─────────────────────────────────────────────────────────────
 router.get('/api/jobs', async (req, res) => {
+  const archived = req.query.archived === '1';
   const { rows } = await pool.query(`
     SELECT j.*, p.name AS assigned_name, p.color AS assigned_color, p.initials AS assigned_initials
     FROM jobs j LEFT JOIN people p ON j.assigned_to = p.id
+    WHERE j.archived = $1
     ORDER BY j.created_at DESC
-  `);
+  `, [archived]);
   res.json(rows);
 });
 
@@ -90,8 +92,8 @@ router.post('/api/jobs', async (req, res) => {
 // ── Update job fields ─────────────────────────────────────────────────────
 router.patch('/api/jobs/:id', async (req, res) => {
   const allowed = ['customer_name','customer_phone','customer_email','trailer_type',
-    'spec','notes','price','deposit_amount','deposit_paid','balance_paid','stage',
-    'assigned_to','due_date'];
+    'spec','notes','extras','price','deposit_amount','deposit_paid','balance_paid','stage',
+    'assigned_to','due_date','archived'];
   const updates = [];
   const vals = [];
   let i = 1;
@@ -126,7 +128,10 @@ router.patch('/api/tasks/:id', async (req, res) => {
   const updates = [];
   const vals = [];
   let i = 1;
-  if (done !== undefined) { updates.push(`done = $${i++}`); vals.push(done); }
+  if (done !== undefined) {
+    updates.push(`done = $${i++}`); vals.push(done);
+    updates.push(`done_at = $${i++}`); vals.push(done ? new Date() : null);
+  }
   if (assigned_to !== undefined) { updates.push(`assigned_to = $${i++}`); vals.push(assigned_to || null); }
   if (!updates.length) return res.json({ ok: true });
   vals.push(req.params.id);
@@ -150,6 +155,40 @@ router.get('/api/jobs/:id/invoice/:type', async (req, res) => {
   const type = req.params.type; // 'deposit' or 'balance'
   if (!['deposit','balance'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
   generateInvoice(res, rows[0], type);
+});
+
+// ── Admin PIN verify ──────────────────────────────────────────────────────
+router.post('/api/admin/verify', (req, res) => {
+  const pin = process.env.ADMIN_PIN || '1234';
+  res.json({ ok: req.body.pin === pin });
+});
+
+// ── Galv send list ────────────────────────────────────────────────────────
+router.get('/api/galv/pending', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT j.id, j.customer_name, j.trailer_type, j.spec, j.due_date,
+           t.id AS task_id, t.label, t.done, t.done_at
+    FROM jobs j
+    JOIN job_tasks t ON t.job_id = j.id AND t.stage = 'galv'
+    WHERE j.stage = 'galv' AND j.archived = false
+    ORDER BY j.id, t.sort_order
+  `);
+  res.json(rows);
+});
+
+router.post('/api/galv/send', async (req, res) => {
+  const { items } = req.body;
+  if (!items?.length) return res.status(400).json({ error: 'No items' });
+  const { rows } = await pool.query(
+    'INSERT INTO galv_sends (items) VALUES ($1) RETURNING id, sent_at',
+    [JSON.stringify(items)]
+  );
+  res.json(rows[0]);
+});
+
+router.get('/api/galv/sends', async (req, res) => {
+  const { rows } = await pool.query('SELECT id, sent_at, items FROM galv_sends ORDER BY sent_at DESC LIMIT 20');
+  res.json(rows);
 });
 
 module.exports = router;

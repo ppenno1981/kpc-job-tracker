@@ -62,6 +62,29 @@ CREATE TABLE IF NOT EXISTS job_activity (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- New columns added incrementally
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='jobs' AND column_name='extras') THEN
+    ALTER TABLE jobs ADD COLUMN extras TEXT;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='jobs' AND column_name='archived') THEN
+    ALTER TABLE jobs ADD COLUMN archived BOOLEAN DEFAULT false;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='job_tasks' AND column_name='done_at') THEN
+    ALTER TABLE job_tasks ADD COLUMN done_at TIMESTAMPTZ;
+  END IF;
+END $$;
+
+CREATE TABLE IF NOT EXISTS galv_sends (
+  id SERIAL PRIMARY KEY,
+  sent_at TIMESTAMPTZ DEFAULT NOW(),
+  items JSONB NOT NULL
+);
+
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()
 RETURNS TRIGGER AS $$
