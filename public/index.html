@@ -172,7 +172,7 @@ textarea{resize:vertical;min-height:60px}
 
 /* Schedule calendar modal */
 .sched-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
-.sched-modal{background:var(--surface);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(900px,100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
+.sched-modal{background:var(--surface);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(900px,100%);height:calc(100vh - 40px);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
 .sched-modal-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
 .sched-modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px}
 .sched-modal-nav{display:flex;align-items:center;gap:8px}
@@ -968,7 +968,8 @@ async function renderSchedule() {
 
   // Calendar grid: Mon–Sun (ISO week)
   const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const todayStr = new Date().toISOString().slice(0,10);
+  const localDateStr = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayStr = localDateStr(new Date());
 
   // First day of month
   const firstDay = new Date(calYear, calMonth, 1);
@@ -984,7 +985,7 @@ async function renderSchedule() {
     const dayOffset = cell - startDow;
     const cellDate = new Date(calYear, calMonth, 1 + dayOffset);
     const isThisMonth = cellDate.getMonth() === calMonth;
-    const dateStr = cellDate.toISOString().slice(0,10);
+    const dateStr = localDateStr(cellDate);
     const isToday = dateStr === todayStr;
 
     let cls = 'cal-day';
