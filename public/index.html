@@ -516,7 +516,8 @@ function makeCard(job, stage) {
       ${job.deposit_paid ? `<span class="chip" style="background:#e8f8ef;color:var(--success)">£${parseFloat(job.deposit_amount||0).toLocaleString()} dep</span>` : ''}
     </div>
     ${job.due_date ? `<div class="card-date" style="color:${isOverdue?'var(--danger)':'var(--fg3)'}">
-      ${isOverdue?'⚠ ':''}Due ${fmtDate(job.due_date)}</div>` : ''}`;
+      ${isOverdue?'⚠ ':''}Due ${fmtDate(job.due_date)}</div>` : ''}
+    ${job.ordering_warn ? `<div class="card-date" style="color:var(--warn);margin-top:2px">📦 Parts not all ordered</div>` : ''}`;
   card.onclick = () => openPanel(job.id);
   return card;
 }
@@ -904,16 +905,21 @@ async function archiveJob(jobId) {
 }
 
 // ── Ordering warning ──────────────────────────────────────────────────────
-function orderingWarning(job) {
-  if (job.stage !== 'order') return '';
-  if (!job.due_date) return '';
+function hasOrderingWarning(job) {
+  if (!job.due_date) return false;
+  if (['done','ready'].includes(job.stage)) return false;
   const due = new Date(String(job.due_date).slice(0,10)+'T00:00:00');
   const twoDaysOut = new Date(); twoDaysOut.setDate(twoDaysOut.getDate()+2);
-  if (due > twoDaysOut) return '';
+  if (due > twoDaysOut) return false;
   const orderTasks = (job.tasks||[]).filter(t=>t.stage==='order');
-  const unfinished = orderTasks.filter(t=>!t.done);
-  if (!unfinished.length) return '';
-  return `<div class="warn-banner">⚠ Due ${fmtDate(job.due_date)} — ${unfinished.length} ordering item${unfinished.length>1?'s':''} not yet ticked off</div>`;
+  return orderTasks.some(t=>!t.done);
+}
+
+function orderingWarning(job) {
+  if (!hasOrderingWarning(job)) return '';
+  const orderTasks = (job.tasks||[]).filter(t=>t.stage==='order');
+  const unfinished = orderTasks.filter(t=>!t.done).length;
+  return `<div class="warn-banner">⚠ Due ${fmtDate(job.due_date)} — ${unfinished} purchased item${unfinished>1?'s':''} not yet ticked off</div>`;
 }
 
 // ── Extras ────────────────────────────────────────────────────────────────
