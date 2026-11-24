@@ -2,11 +2,20 @@
 
 CREATE TABLE IF NOT EXISTS people (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
   role TEXT,
   color TEXT DEFAULT '#1d6fa4',
   initials TEXT
 );
+
+-- Add unique constraint idempotently (safe if already exists)
+DO $$ BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'people_name_unique'
+  ) THEN
+    ALTER TABLE people ADD CONSTRAINT people_name_unique UNIQUE (name);
+  END IF;
+END $$;
 
 INSERT INTO people (name, role, color, initials) VALUES
   ('Mark',  'Fabricator', '#1d6fa4', 'MK'),
