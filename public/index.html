@@ -170,22 +170,39 @@ textarea{resize:vertical;min-height:60px}
 ::-webkit-scrollbar-track{background:transparent}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
 
-/* Schedule */
-.sched-section{margin-bottom:20px}
-.sched-title{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;padding:6px 10px;border-radius:6px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.sched-title.blue{background:#dbeafe;color:#1d4ed8}
-.sched-title.green{background:#dcfce7;color:#15803d}
+/* Schedule calendar modal */
+.sched-modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px}
+.sched-modal{background:var(--surface);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:min(900px,100%);max-height:calc(100vh - 40px);display:flex;flex-direction:column;overflow:hidden}
+.sched-modal-header{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-shrink:0}
+.sched-modal-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16px}
+.sched-modal-nav{display:flex;align-items:center;gap:8px}
+.sched-month-label{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;min-width:160px;text-align:center}
+.sched-nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;cursor:pointer;padding:5px 10px;font-size:13px;color:var(--fg);transition:background .15s}
+.sched-nav-btn:hover{background:var(--border)}
+.sched-modal-legend{display:flex;gap:14px;align-items:center;font-size:12px;color:var(--fg2)}
+.sched-legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.sched-modal-body{flex:1;overflow-y:auto;padding:16px 20px 20px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal-dow{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;text-align:center;padding:4px 0 8px;color:var(--fg3);letter-spacing:.4px;text-transform:uppercase}
+.cal-day{min-height:80px;border:1px solid var(--border);border-radius:6px;padding:5px 6px;background:var(--surface);position:relative}
+.cal-day.other-month{background:var(--surface2);opacity:.5}
+.cal-day.today{border-color:#3b82f6;border-width:2px}
+.cal-day-num{font-size:11px;font-weight:700;color:var(--fg3);margin-bottom:3px;line-height:1}
+.cal-day.today .cal-day-num{color:#3b82f6}
+.cal-chip{font-size:10px;font-weight:600;padding:2px 5px;border-radius:4px;margin-bottom:2px;cursor:pointer;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;max-width:100%;transition:opacity .15s}
+.cal-chip:hover{opacity:.75}
+.cal-chip.fab{background:#dbeafe;color:#1d4ed8}
+.cal-chip.fit{background:#dcfce7;color:#15803d}
 @media(prefers-color-scheme:dark){
-  .sched-title.blue{background:#1e3a5f;color:#60a5fa}
-  .sched-title.green{background:#14401f;color:#4ade80}
+  .cal-chip.fab{background:#1e3a5f;color:#60a5fa}
+  .cal-chip.fit{background:#14401f;color:#4ade80}
 }
-.sched-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:6px;border-left:3px solid transparent;background:var(--surface2);margin-bottom:5px;cursor:pointer;font-size:12px;transition:opacity .15s}
-.sched-row:hover{opacity:.8}
-.sched-row.blue{border-left-color:#3b82f6}
-.sched-row.green{border-left-color:#22c55e}
-.sched-date{font-weight:700;min-width:70px;font-size:11px}
-.sched-name{flex:1;font-weight:600}
-.sched-trailer{color:var(--fg2);font-size:11px}
+@media(max-width:600px){
+  .sched-modal-overlay{padding:0}
+  .sched-modal{border-radius:0;width:100%;max-height:100vh}
+  .cal-day{min-height:60px}
+  .cal-chip{font-size:9px}
+}
 
 /* Warning banner */
 .warn-banner{background:#fef3cd;border:1px solid #ffc107;border-radius:var(--radius);padding:8px 12px;font-size:12px;color:#856404;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start}
@@ -393,13 +410,32 @@ textarea{resize:vertical;min-height:60px}
     <div class="panel-body" id="teamBody"></div>
   </div>
 
-  <!-- Schedule panel -->
-  <div class="panel" id="schedulePanel" hidden>
-    <div class="panel-header">
-      <div class="panel-title">Schedule</div>
-      <button class="close-btn" onclick="closeSchedule()">&times;</button>
+  <!-- dummy panel placeholder removed; schedule is now a modal overlay -->
+</div>
+
+<!-- Schedule calendar modal -->
+<div class="sched-modal-overlay" id="schedulePanel" hidden onclick="if(event.target===this)closeSchedule()">
+  <div class="sched-modal">
+    <div class="sched-modal-header">
+      <div class="sched-modal-title">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:6px"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Schedule
+      </div>
+      <div class="sched-modal-nav">
+        <button class="sched-nav-btn" onclick="shiftCalMonth(-1)">&#8249;</button>
+        <span class="sched-month-label" id="calMonthLabel"></span>
+        <button class="sched-nav-btn" onclick="shiftCalMonth(1)">&#8250;</button>
+        <button class="sched-nav-btn" onclick="goCalToday()" style="font-size:11px;padding:5px 8px">Today</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div class="sched-modal-legend">
+          <span class="sched-legend-dot" style="background:#3b82f6"></span>Fabrication
+          <span class="sched-legend-dot" style="background:#22c55e;margin-left:6px"></span>Fitting
+        </div>
+        <button class="close-btn" onclick="closeSchedule()">&times;</button>
+      </div>
     </div>
-    <div class="panel-body" id="scheduleBody"></div>
+    <div class="sched-modal-body" id="scheduleBody"></div>
   </div>
 </div>
 
@@ -895,8 +931,10 @@ function toast(msg) {
 
 function fmtDateShort(d){if(!d)return'';return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
 
-// ── Schedule ──────────────────────────────────────────────────────────────
+// ── Schedule calendar ──────────────────────────────────────────────────────
 let showSchedule = false;
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth(); // 0-based
 
 function toggleSchedule() {
   showSchedule = !showSchedule;
@@ -904,82 +942,63 @@ function toggleSchedule() {
   if (showSchedule) { closePanel(); closeTeam(); renderSchedule(); }
 }
 function closeSchedule() { showSchedule = false; document.getElementById('schedulePanel').hidden = true; }
+function shiftCalMonth(delta) { calMonth += delta; if (calMonth > 11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;} renderSchedule(); }
+function goCalToday() { calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); renderSchedule(); }
 
 async function renderSchedule() {
   const body = document.getElementById('scheduleBody');
   body.innerHTML = '<div class="loader">Loading…</div>';
   const data = await api.get('/api/schedule');
 
-  // Pre-galvanising: quote or fab stage — sort by fab_date then due_date
-  const preGalv = data.filter(j => ['quote','fab'].includes(j.stage))
-    .sort((a,b) => {
-      const ad = a.fab_date || a.due_date;
-      const bd = b.fab_date || b.due_date;
-      if (!ad && !bd) return 0;
-      if (!ad) return 1; if (!bd) return -1;
-      return new Date(ad) - new Date(bd);
-    });
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('calMonthLabel').textContent = `${MONTHS[calMonth]} ${calYear}`;
 
-  // Fitting: galv, order, or fit stage with a fitting_date set (or show all fit stage)
-  const fitting = data.filter(j => ['galv','order','fit'].includes(j.stage))
-    .sort((a,b) => {
-      const ad = a.fitting_date || a.due_date;
-      const bd = b.fitting_date || b.due_date;
-      if (!ad && !bd) return 0;
-      if (!ad) return 1; if (!bd) return -1;
-      return new Date(ad) - new Date(bd);
-    });
+  // Build lookup: dateStr -> [{job, type:'fab'|'fit'}]
+  const byDate = {};
+  const addChip = (dateStr, job, type) => {
+    if (!dateStr) return;
+    const d = String(dateStr).slice(0,10);
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push({job, type});
+  };
+  data.forEach(j => {
+    if (['quote','fab'].includes(j.stage) && j.fab_date) addChip(j.fab_date, j, 'fab');
+    if (['galv','order','fit'].includes(j.stage) && j.fitting_date) addChip(j.fitting_date, j, 'fit');
+  });
 
-  let html = '';
+  // Calendar grid: Mon–Sun (ISO week)
+  const DOW = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const todayStr = new Date().toISOString().slice(0,10);
 
-  // Blue — pre-galvanising
-  html += `<div class="sched-section">
-    <div class="sched-title blue">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-      Pre-Galvanising (${preGalv.length})
-    </div>`;
-  if (!preGalv.length) {
-    html += '<div class="empty" style="padding:10px 0">No pre-galvanising jobs with a target date</div>';
-  } else {
-    preGalv.forEach(j => {
-      const displayDate = j.fab_date || j.due_date;
-      const label = j.fab_date ? fmtDate(j.fab_date) : (j.due_date ? `Due ${fmtDate(j.due_date)}` : 'No date set');
-      const noFabDate = !j.fab_date;
-      const person = j.assigned_name ? `<span style="font-weight:700;color:${j.assigned_color}">${j.assigned_initials}</span>` : '';
-      html += `<div class="sched-row blue" onclick="openPanel(${j.id})">
-        <span class="sched-date" style="color:${noFabDate?'var(--fg3)':'#3b82f6'}">${label}</span>
-        <span class="sched-name">${esc(j.customer_name)}</span>
-        <span class="sched-trailer">${esc(j.trailer_type||'')}${j.spec?' · '+esc(j.spec):''}</span>
-        ${person}
-      </div>`;
+  // First day of month
+  const firstDay = new Date(calYear, calMonth, 1);
+  // Monday-based: 0=Mon…6=Sun
+  let startDow = (firstDay.getDay() + 6) % 7; // getDay: 0=Sun
+  const daysInMonth = new Date(calYear, calMonth+1, 0).getDate();
+  const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+
+  let html = '<div class="cal-grid">';
+  DOW.forEach(d => { html += `<div class="cal-dow">${d}</div>`; });
+
+  for (let cell = 0; cell < totalCells; cell++) {
+    const dayOffset = cell - startDow;
+    const cellDate = new Date(calYear, calMonth, 1 + dayOffset);
+    const isThisMonth = cellDate.getMonth() === calMonth;
+    const dateStr = cellDate.toISOString().slice(0,10);
+    const isToday = dateStr === todayStr;
+
+    let cls = 'cal-day';
+    if (!isThisMonth) cls += ' other-month';
+    if (isToday) cls += ' today';
+
+    html += `<div class="${cls}"><div class="cal-day-num">${cellDate.getDate()}</div>`;
+    (byDate[dateStr] || []).forEach(({job, type}) => {
+      const label = job.trailer_type ? `${esc(job.customer_name)} · ${esc(job.trailer_type)}` : esc(job.customer_name);
+      html += `<span class="cal-chip ${type}" onclick="closeSchedule();openPanel(${job.id})" title="${esc(job.customer_name)}">${label}</span>`;
     });
+    html += '</div>';
   }
   html += '</div>';
-
-  // Green — fitting
-  html += `<div class="sched-section">
-    <div class="sched-title green">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-      Fitting (${fitting.length})
-    </div>`;
-  if (!fitting.length) {
-    html += '<div class="empty" style="padding:10px 0">No jobs approaching fitting stage</div>';
-  } else {
-    fitting.forEach(j => {
-      const displayDate = j.fitting_date || j.due_date;
-      const label = j.fitting_date ? fmtDate(j.fitting_date) : (j.due_date ? `Due ${fmtDate(j.due_date)}` : 'No date');
-      const noFittingDate = !j.fitting_date;
-      const person = j.assigned_name ? `<span style="font-weight:700;color:${j.assigned_color}">${j.assigned_initials}</span>` : '';
-      html += `<div class="sched-row green" onclick="openPanel(${j.id})" title="${noFittingDate?'Open job to set fitting date':''}">
-        <span class="sched-date" style="color:${noFittingDate?'var(--fg3)':'#22c55e'}">${label}</span>
-        <span class="sched-name">${esc(j.customer_name)}</span>
-        <span class="sched-trailer">${esc(j.trailer_type||'')}${j.spec?' · '+esc(j.spec):''}</span>
-        ${person}
-      </div>`;
-    });
-  }
-  html += '</div>';
-
   body.innerHTML = html;
 }
 
