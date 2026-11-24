@@ -414,7 +414,7 @@ textarea{resize:vertical;min-height:60px}
 </div>
 
 <!-- Schedule calendar modal -->
-<div class="sched-modal-overlay" id="schedulePanel" hidden onclick="if(event.target===this)closeSchedule()">
+<div class="sched-modal-overlay" id="schedulePanel" style="display:none" onclick="if(event.target===this)closeSchedule()">
   <div class="sched-modal">
     <div class="sched-modal-header">
       <div class="sched-modal-title">
@@ -938,10 +938,10 @@ let calMonth = new Date().getMonth(); // 0-based
 
 function toggleSchedule() {
   showSchedule = !showSchedule;
-  document.getElementById('schedulePanel').hidden = !showSchedule;
+  document.getElementById('schedulePanel').style.display = showSchedule ? 'flex' : 'none';
   if (showSchedule) { closePanel(); closeTeam(); renderSchedule(); }
 }
-function closeSchedule() { showSchedule = false; document.getElementById('schedulePanel').hidden = true; }
+function closeSchedule() { showSchedule = false; document.getElementById('schedulePanel').style.display = 'none'; }
 function shiftCalMonth(delta) { calMonth += delta; if (calMonth > 11){calMonth=0;calYear++;}else if(calMonth<0){calMonth=11;calYear--;} renderSchedule(); }
 function goCalToday() { calYear=new Date().getFullYear(); calMonth=new Date().getMonth(); renderSchedule(); }
 
