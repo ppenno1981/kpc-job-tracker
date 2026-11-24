@@ -64,6 +64,16 @@ CREATE TABLE IF NOT EXISTS job_activity (
 
 -- New columns added incrementally
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='jobs' AND column_name='fitting_date') THEN
+    ALTER TABLE jobs ADD COLUMN fitting_date DATE;
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='jobs' AND column_name='fab_date') THEN
+    ALTER TABLE jobs ADD COLUMN fab_date DATE;
+  END IF;
+END $$;
+DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='jobs' AND column_name='extras') THEN
     ALTER TABLE jobs ADD COLUMN extras TEXT;
   END IF;

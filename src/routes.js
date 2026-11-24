@@ -140,7 +140,7 @@ router.post('/api/jobs', async (req, res) => {
 router.patch('/api/jobs/:id', async (req, res) => {
   const allowed = ['customer_name','customer_phone','customer_email','trailer_type',
     'spec','notes','extras','price','deposit_amount','deposit_paid','balance_paid','stage',
-    'assigned_to','due_date','archived'];
+    'assigned_to','due_date','fitting_date','fab_date','archived'];
   const updates = [];
   const vals = [];
   let i = 1;
@@ -202,6 +202,19 @@ router.get('/api/jobs/:id/invoice/:type', async (req, res) => {
   const type = req.params.type; // 'deposit' or 'balance'
   if (!['deposit','balance'].includes(type)) return res.status(400).json({ error: 'Invalid type' });
   generateInvoice(res, rows[0], type);
+});
+
+// ── Schedule ──────────────────────────────────────────────────────────────
+router.get('/api/schedule', async (req, res) => {
+  const { rows } = await pool.query(`
+    SELECT j.id, j.customer_name, j.trailer_type, j.spec, j.stage,
+           j.due_date, j.fitting_date, j.fab_date,
+           p.name AS assigned_name, p.color AS assigned_color, p.initials AS assigned_initials
+    FROM jobs j LEFT JOIN people p ON j.assigned_to = p.id
+    WHERE j.archived = false AND j.stage NOT IN ('done')
+    ORDER BY COALESCE(j.fitting_date, j.due_date) ASC NULLS LAST
+  `);
+  res.json(rows);
 });
 
 // ── Admin PIN verify ──────────────────────────────────────────────────────
